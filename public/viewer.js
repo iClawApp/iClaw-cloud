@@ -298,9 +298,17 @@
   }
 
   function replyStubRoleLabel(role) {
-    if (role === 'user') return 'Ви';
-    if (role === 'assistant') return 'Асистент';
+    const r = String(role ?? '')
+      .trim()
+      .toLowerCase();
+    if (r === 'user') return 'Ви';
+    if (r === 'assistant') return 'Асистент';
     return 'Чат';
+  }
+
+  /** Match reply-quote search against rendered markdown (NBSP vs space, etc.). */
+  function normalizeReplySearchText(s) {
+    return String(s ?? '').replace(/\u00a0/g, ' ');
   }
 
   function readReplyStubQuote(stub) {
@@ -356,11 +364,11 @@
   function highlightReplyTargetQuote(targetMsg, quoteRaw) {
     const body = targetMsg.querySelector('.msg-body');
     if (!body) return false;
-    const q = String(quoteRaw ?? '').trim();
+    const q = normalizeReplySearchText(String(quoteRaw ?? '').trim());
     if (!q) return false;
     const nodes = replyQuoteSearchTextNodes(body);
     if (!nodes.length) return false;
-    const big = nodes.map((t) => t.nodeValue || '').join('');
+    const big = nodes.map((t) => normalizeReplySearchText(t.nodeValue || '')).join('');
     const idx = big.indexOf(q);
     if (idx === -1) return false;
     const end = idx + q.length;
@@ -405,7 +413,11 @@
     thread.replaceChildren();
     for (const m of messages) {
       const wrap = document.createElement('div');
-      wrap.className = 'msg ' + (m.role || 'system');
+      const roleSlug =
+        String(m.role || 'system')
+          .trim()
+          .toLowerCase() || 'system';
+      wrap.className = 'msg ' + roleSlug;
       const contentStr = String(m.content || '');
       if (
         (m.role || '').toLowerCase() === 'system' &&
@@ -513,21 +525,21 @@
     });
   }
 
-  // Single click handler delegates reply-jump + copy + check icon swap.
-  thread.addEventListener('click', (e) => {
+  // Single click handler delegates reply-jump + copy — mirror iClaw `#messages` delegation.
+  messagesSection.addEventListener('click', (e) => {
     const replyStub =
       e.target instanceof Element ? e.target.closest('.msg-reply-stub') : null;
     if (replyStub) {
       const mid = replyStub.getAttribute('data-jump-to-msg');
       if (!mid || !thread) return;
       e.preventDefault();
-      const targetMsg = thread.querySelector('.msg[data-msg-id="' + mid + '"]');
+      const targetMsg = messagesSection.querySelector('.msg[data-msg-id="' + mid + '"]');
       if (targetMsg) {
         cancelReplyJumpHighlightTimers();
-        clearReplyJumpHighlights(thread);
+        clearReplyJumpHighlights(messagesSection);
         const q = readReplyStubQuote(replyStub);
         const picked = q && highlightReplyTargetQuote(targetMsg, q);
-        if (picked) scheduleClearReplyJumpHighlight(thread);
+        if (picked) scheduleClearReplyJumpHighlight(messagesSection);
         if (!picked) {
           targetMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           targetMsg.classList.add('msg-highlight-flash');

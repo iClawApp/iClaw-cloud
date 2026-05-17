@@ -354,6 +354,9 @@ html, body {
   font-size: 0.8125rem;
   line-height: 1.35;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .msg-reply-stub:hover {
   background: color-mix(in srgb, var(--text) 4%, transparent);
