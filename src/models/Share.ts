@@ -64,8 +64,9 @@ const ShareSchema = new Schema(
      */
     maxViews: { type: Number, default: null },
 
-    /** Mongo TTL index targets this field — see schema.index() below. */
-    expiresAt: { type: Date, required: true, index: true },
+    /** Mongo TTL index on this field — defined via schema.index() below
+        (not inline) so we don't end up with a duplicate index. */
+    expiresAt: { type: Date, required: true },
 
     /** Size of the encrypted payload in bytes. Cheap to compute, useful for stats/abuse. */
     size: { type: Number, required: true },
