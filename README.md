@@ -1,4 +1,8 @@
-# iClaw cloud
+<p align="center">
+  <img src="./public/icon-192.png" alt="iClaw-cloud logo" width="96" height="96">
+</p>
+
+<h1 align="center">iClaw-cloud</h1>
 
 Companion **cloud share** server for [iClaw](https://github.com/iClawApp/iClaw). Lets you publish a chat as an end-to-end encrypted link with a TTL: receivers open the URL in any browser and the chat decrypts client-side.
 
