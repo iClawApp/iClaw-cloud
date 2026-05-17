@@ -59,6 +59,12 @@
   --radius-lg: 12px;
   --warn-soft-bg: color-mix(in srgb, var(--warn) 8%, var(--surface));
   --warn-soft-border: color-mix(in srgb, var(--warn) 35%, var(--border));
+
+  /* Viewer chrome */
+  --head-backdrop: color-mix(in srgb, var(--header-surface) 82%, transparent);
+  --head-edge: color-mix(in srgb, var(--border) 65%, transparent);
+  --head-brand-surface: color-mix(in srgb, var(--text) 5%, var(--header-surface));
+  --head-brand-surface-hover: color-mix(in srgb, var(--text) 8%, var(--header-surface));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,6 +99,11 @@
     --code-block-bg: #0a0f1c;
     --code-block-fg: #e2e8f0;
     --th-bg: #2a2a2a;
+
+    --head-backdrop: color-mix(in srgb, var(--header-surface) 88%, transparent);
+    --head-edge: color-mix(in srgb, var(--border) 55%, transparent);
+    --head-brand-surface: color-mix(in srgb, var(--surface) 40%, transparent);
+    --head-brand-surface-hover: color-mix(in srgb, var(--surface) 55%, transparent);
   }
 }
 
@@ -122,51 +133,96 @@ html, body {
 }
 
 /* `[hidden]` must win over component display (e.g. .loading uses display:flex).
-   Otherwise "Decrypting…" stays visible above the transcript. */
+   Otherwise the decrypt spinner stays visible above the transcript. */
 .page [hidden] {
+  display: none !important;
+}
+
+/* Stronger than `.loading { display: flex }` — some engines need id+attr to hide. */
+#loading[hidden],
+#gate[hidden],
+#messages[hidden],
+#error[hidden] {
   display: none !important;
 }
 
 .page-head {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-7);
   padding: var(--space-6) var(--space-9);
-  border-bottom: 1px solid var(--border);
+  min-height: 3.25rem;
+  border-bottom: 1px solid var(--head-edge);
   background: var(--header-surface);
   position: sticky;
   top: 0;
   z-index: 5;
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--text) 4%, transparent);
 }
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .page-head {
+    background: var(--head-backdrop);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+}
+
 .brand {
-  font-weight: 600;
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-6);
+  margin: calc(-1 * var(--space-2)) 0;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
   text-decoration: none;
-  color: var(--text);
-  letter-spacing: -0.01em;
+  color: var(--muted);
+  background: var(--head-brand-surface);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
 }
+.brand:hover {
+  color: var(--text);
+  background: var(--head-brand-surface-hover);
+  border-color: color-mix(in srgb, var(--muted) 35%, var(--border));
+}
+.brand:active {
+  transform: scale(0.98);
+}
+
 .share-title-bar {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: var(--space-2);
   overflow: hidden;
 }
 .share-title-bar h1 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.028em;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .share-title-bar .meta {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 .muted { color: var(--muted); }
 
@@ -180,6 +236,29 @@ html, body {
   background: var(--header-surface);
 }
 .page-foot a { color: inherit; }
+
+/* Main column: center gate / error / spinner; stretch transcript when open */
+.page-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-7) var(--space-9);
+}
+.page-main:not(:has(#messages:not([hidden]))) {
+  justify-content: center;
+}
+.page-main:has(#messages:not([hidden])) {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+}
+
+/* Never show decrypt UI while the password gate is open (avoids stray text/spinner). */
+.page-main:has(#gate:not([hidden])) #loading {
+  display: none !important;
+}
 
 /* ============================================================================
  * Messages container — mirrors iClaw's `.messages` + `.messages-thread`
@@ -456,7 +535,8 @@ html, body {
 
 .gate {
   max-width: 32rem;
-  margin: 4rem auto;
+  width: 100%;
+  margin: 0;
   padding: var(--space-9);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -499,17 +579,33 @@ html, body {
 
 .loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  min-height: 8rem;
+  gap: var(--space-6);
+  flex: 0 0 auto;
+  min-height: 5rem;
   color: var(--muted);
   font-size: 0.9rem;
+}
+.loading-spinner {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 3px solid color-mix(in srgb, var(--muted) 35%, transparent);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: viewer-loading-spin 0.75s linear infinite;
+}
+@keyframes viewer-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-page {
   max-width: 32rem;
-  margin: 4rem auto;
+  width: 100%;
+  margin: 0;
   padding: var(--space-9);
   background: var(--surface);
   border: 1px solid var(--border);

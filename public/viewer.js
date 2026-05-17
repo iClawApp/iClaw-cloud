@@ -74,7 +74,7 @@
       renderMetaFromBlob(blob);
       if (blob.hasPassword) {
         gate.hidden = false;
-        loading.hidden = true;
+        setDecryptLoading(false);
         setText(titleEl, 'Password required');
         pwForm.addEventListener('submit', async (e) => {
           e.preventDefault();
@@ -82,11 +82,15 @@
           if (!pw) return;
           gateError.hidden = true;
           setText(gateError, '');
+          gate.hidden = true;
+          setDecryptLoading(true);
           try {
             await unlockWithPassword(blob, pw);
           } catch (err) {
             console.error(err);
             if (errorSection && !errorSection.hidden) return;
+            setDecryptLoading(false);
+            gate.hidden = false;
             showGateError('Wrong password or corrupted payload.');
           }
         });
@@ -198,12 +202,11 @@
     );
     const key = await importAesKey(new Uint8Array(rawKeyBuf));
     await decryptAndRender(blob, key);
-    gate.hidden = true;
   }
 
   async function decryptAndRender(blob, key) {
     try {
-      loading.hidden = false;
+      setDecryptLoading(true);
       const ciphertext = base64ToBytes(blob.ciphertext);
       const nonce = base64ToBytes(blob.nonce);
       const plainBuf = await crypto.subtle.decrypt(
@@ -217,6 +220,8 @@
       /** @type {{title?:string, agent?:string, messages?: Array<{role:string,content:string,createdAt?:string}>}} */
       const payload = JSON.parse(text);
 
+      setDecryptLoading(false);
+
       setText(titleEl, payload.title || 'Shared chat');
       const subParts = [];
       if (payload.agent) subParts.push(payload.agent);
@@ -227,12 +232,11 @@
 
       renderTranscript(payload.messages || []);
 
-      loading.hidden = true;
       messagesSection.hidden = false;
       document.title = (payload.title || 'Shared chat') + ' — iClaw share';
     } catch (err) {
       console.error(err);
-      loading.hidden = true;
+      setDecryptLoading(false);
       if (messagesSection) messagesSection.hidden = true;
       let msg =
         err instanceof Error
@@ -448,8 +452,19 @@
 
   /* ----------------------------------------- UI helpers ---------------- */
 
+  function setDecryptLoading(on) {
+    if (!loading) return;
+    loading.hidden = !on;
+    loading.setAttribute('aria-busy', on ? 'true' : 'false');
+    if (on) {
+      loading.setAttribute('aria-label', 'Decrypting…');
+    } else {
+      loading.removeAttribute('aria-label');
+    }
+  }
+
   function showError(text) {
-    if (loading) loading.hidden = true;
+    setDecryptLoading(false);
     if (gate) gate.hidden = true;
     setText(errorDetail, text);
     if (errorSection) errorSection.hidden = false;
