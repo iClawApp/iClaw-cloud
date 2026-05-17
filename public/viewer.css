@@ -1,19 +1,52 @@
-/*
- * Minimal viewer styling — readable, light/dark, no dependencies.
- * Mirrors the spacing-/radius-token style from the main iClaw codebase.
- */
+/* ============================================================================
+ * Viewer styling — mirrors iClaw's chat surface 1:1 so a decrypted share
+ * looks identical to the original chat. Tokens, message bubbles, markdown
+ * styling, code blocks with copy button, and dark theme are all ported from
+ * iClaw's `public/css/style.css`.
+ * ========================================================================== */
 
 :root {
-  --bg: #fafafa;
+  /* Surfaces & text */
+  --bg: #f9f9f9;
   --surface: #ffffff;
   --border: #e4e4e7;
+  --hover: #ececec;
   --text: #18181b;
   --muted: #71717a;
   --accent: #18181b;
-  --code-bg: #f1f1f3;
-  --code-fg: #1f2937;
-  --user-bg: #f4f4f4;
+
+  /* Chat pane — ChatGPT-like conversation column */
+  --chat-pane-bg: #ffffff;
+  --header-surface: var(--chat-pane-bg);
+  --thread-max-width: 48rem;
+  --msg-gap: 1.25rem;
+  --msg-radius-user: 1.25rem;
+  --msg-user-fill: #f4f4f4;
+  --msg-user-stroke: transparent;
+  --msg-prose: #353740;
+  --msg-radius: 12px;
+  --system-bg: #f4f4f5;
+
+  /* Status accents */
   --danger: #dc2626;
+  --warn: #c47a00;
+
+  /* Buttons */
+  --btn-bg: #18181b;
+  --btn-fg: #ffffff;
+  --btn-bg-hover: #000000;
+
+  /* Markdown (ChatGPT-ish link tone in prose) */
+  --md-link: #2962ff;
+  --md-link-hover: #1e54e5;
+  --code-inline-bg: #f1f1f3;
+  --code-inline-border: #e8e8eb;
+  --code-inline-fg: #1f2937;
+  --code-block-bg: #0f172a;
+  --code-block-fg: #e2e8f0;
+  --th-bg: #f7f7f8;
+
+  /* Tokens used by share-specific UI */
   --space-2: 4px;
   --space-3: 6px;
   --space-4: 8px;
@@ -24,6 +57,8 @@
   --space-9: 24px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --warn-soft-bg: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  --warn-soft-border: color-mix(in srgb, var(--warn) 35%, var(--border));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,12 +66,33 @@
     --bg: #1a1a1a;
     --surface: #232323;
     --border: #424242;
+    --hover: #2a2a2a;
     --text: #ececec;
     --muted: #9ca3af;
     --accent: #ececec;
-    --code-bg: #2a2a2a;
-    --code-fg: #e5e7eb;
-    --user-bg: #2f2f2f;
+
+    --chat-pane-bg: #212121;
+    --header-surface: var(--chat-pane-bg);
+    --msg-user-fill: #2f2f2f;
+    --msg-user-stroke: transparent;
+    --msg-prose: #d1d5db;
+    --system-bg: #262626;
+
+    --danger: #fca5a5;
+    --warn: #fbbf24;
+
+    --btn-bg: #ececec;
+    --btn-fg: #18181b;
+    --btn-bg-hover: #ffffff;
+
+    --md-link: #7ab7ff;
+    --md-link-hover: #a8d0ff;
+    --code-inline-bg: #2a2a2a;
+    --code-inline-border: #3a3a3a;
+    --code-inline-fg: #e5e7eb;
+    --code-block-bg: #0a0f1c;
+    --code-block-fg: #e2e8f0;
+    --th-bg: #2a2a2a;
   }
 }
 
@@ -45,109 +101,357 @@
 html, body {
   margin: 0;
   padding: 0;
+  min-height: 100vh;
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+    'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
 }
 
+/* ============================================================================
+ * Page layout — chat-pane in the centre, head + foot above/below
+ * ========================================================================== */
+
 .page {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: var(--space-9) var(--space-7) var(--space-9);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .page-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-9);
+  padding: var(--space-6) var(--space-9);
+  border-bottom: 1px solid var(--border);
+  background: var(--header-surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
-
 .brand {
   font-weight: 600;
   text-decoration: none;
   color: var(--text);
   letter-spacing: -0.01em;
 }
-
-.muted { color: var(--muted); font-size: 0.875em; }
-.meta  { font-size: 0.8em; }
-
-.share-title { margin: 0 0 var(--space-3); font-size: 1.4em; }
-.share-sub   { margin: 0 0 var(--space-8); }
-
-.transcript {
+.share-title-bar {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: 2px;
+  overflow: hidden;
 }
-
-.msg { display: flex; flex-direction: column; gap: var(--space-3); }
-.msg-role {
-  font-size: 0.75em;
+.share-title-bar h1 {
+  margin: 0;
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.share-title-bar .meta {
+  font-size: 0.75rem;
   color: var(--muted);
-  text-transform: lowercase;
-  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.msg-body { line-height: 1.55; word-wrap: break-word; }
-.msg-body p { margin: 0 0 var(--space-4); }
-.msg-body p:last-child { margin-bottom: 0; }
+.muted { color: var(--muted); }
 
-.msg--user .msg-body {
-  background: var(--user-bg);
-  padding: var(--space-6) var(--space-7);
-  border-radius: var(--radius-lg);
-  align-self: flex-start;
+.page-foot {
+  margin-top: auto;
+  padding: var(--space-6) var(--space-9);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  background: var(--header-surface);
+}
+.page-foot a { color: inherit; }
+
+/* ============================================================================
+ * Messages container — mirrors iClaw's `.messages` + `.messages-thread`
+ * ========================================================================== */
+
+.messages {
+  flex: 1;
+  width: 100%;
+  background: var(--chat-pane-bg);
+  overflow-y: auto;
+}
+.messages-thread {
+  max-width: var(--thread-max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--msg-gap);
+  align-items: stretch;
+}
+
+/* ============================================================================
+ * .msg + bubbles (assistant flat / user pill) — copied from iClaw
+ * ========================================================================== */
+
+.msg {
+  position: relative;
+  width: 100%;
   max-width: 100%;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.625;
+  letter-spacing: -0.01em;
 }
 
-.msg-body code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: var(--code-bg);
-  color: var(--code-fg);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.9em;
+/* Assistant — flat prose on canvas (no bubble) */
+.msg.assistant {
+  align-self: stretch;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
-.msg-body pre.code {
-  background: var(--code-bg);
-  color: var(--code-fg);
-  padding: var(--space-6) var(--space-7);
-  border-radius: var(--radius-md);
+.msg.assistant .msg-body { color: var(--msg-prose); }
+
+/* User — light gray rounded bubble, right-aligned */
+.msg.user {
+  align-self: flex-end;
+  width: auto;
+  max-width: min(85%, 36rem);
+  background: var(--msg-user-fill);
+  color: var(--text);
+  border: 1px solid var(--msg-user-stroke);
+  border-radius: var(--msg-radius-user);
+  padding: 12px 16px 14px;
+  box-shadow: none;
+}
+.msg.user .msg-body { color: var(--text); }
+
+/* ChatGPT hides role chrome; keep labels for screen readers only */
+.msg .role {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.msg.system {
+  align-self: stretch;
+  background: var(--system-bg);
+  border-radius: var(--msg-radius);
+  padding: 10px 14px;
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+/* ============================================================================
+ * Markdown content inside .msg-body — copied from iClaw
+ * ========================================================================== */
+
+.msg-body {
+  white-space: normal;
+  word-break: break-word;
+}
+.msg-body > *:first-child { margin-top: 0; }
+.msg-body > *:last-child  { margin-bottom: 0; }
+
+.msg-body p { margin: 0 0 0.65em; line-height: 1.55; }
+
+.msg-body h1,
+.msg-body h2,
+.msg-body h3,
+.msg-body h4,
+.msg-body h5,
+.msg-body h6 {
+  margin: 1.2em 0 0.5em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.msg-body h1 { font-size: 1.4em; }
+.msg-body h2 { font-size: 1.25em; }
+.msg-body h3 { font-size: 1.1em; }
+.msg-body h4 { font-size: 1em; }
+.msg-body h5,
+.msg-body h6 { font-size: 0.95em; color: var(--muted); }
+
+.msg-body ul,
+.msg-body ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+.msg-body li { margin: 0.2em 0; line-height: 1.5; }
+.msg-body li > p { margin: 0.2em 0; }
+.msg-body ul ul,
+.msg-body ul ol,
+.msg-body ol ul,
+.msg-body ol ol { margin: 0.2em 0; }
+
+.msg-body a {
+  color: var(--md-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.msg-body a:hover { color: var(--md-link-hover); }
+
+.msg-body strong { font-weight: 600; }
+.msg-body em { font-style: italic; }
+.msg-body del { color: var(--muted); }
+.msg-body hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.2em 0;
+}
+
+/* inline code */
+.msg-body :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--code-inline-bg);
+  border: 1px solid var(--code-inline-border);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  color: var(--code-inline-fg);
+}
+
+/* fenced code block + floating copy button */
+.code-block-wrap {
+  position: relative;
+  margin: 0.5em 0 1em;
+}
+.code-block-wrap > pre {
+  margin: 0;
+  padding: 12px 40px 12px 14px;
+  background: var(--code-block-bg);
+  color: var(--code-block-fg);
+  border-radius: 8px;
   overflow-x: auto;
   font-size: 0.85em;
-  line-height: 1.5;
-  margin: var(--space-5) 0;
+  line-height: 1.55;
 }
-.msg-body pre.code code {
+.code-block-wrap > pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: transparent;
+  border: 0;
   padding: 0;
-  font-size: 1em;
+  color: inherit;
+  white-space: pre;
 }
-.msg-body a { color: #2962ff; }
-.msg-body a:hover { text-decoration: underline; }
+.code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--code-block-fg);
+  opacity: 0.42;
+  cursor: pointer;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.code-copy-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--code-block-fg) 10%, transparent);
+}
+.code-copy-btn:focus-visible {
+  opacity: 1;
+  outline: 2px solid color-mix(in srgb, var(--md-link) 50%, transparent);
+  outline-offset: 2px;
+}
+.code-copy-btn:disabled { opacity: 1; cursor: default; }
+.code-copy-icon { display: block; pointer-events: none; }
+.code-copy-icon--ok { color: #4ade80; }
+
+/* blockquote */
+.msg-body blockquote {
+  margin: 0.5em 0 1em;
+  padding: 0.2em 0.9em;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+  font-style: italic;
+}
+.msg-body blockquote > p { margin: 0.3em 0; }
+
+/* media */
+.msg-body img,
+.msg-body video {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  height: auto;
+  margin: 0.5em 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--system-bg);
+}
+.msg-body video { width: 100%; outline: none; }
+.msg-body a > img { margin: 0; cursor: pointer; }
+
+/* tables (GFM) */
+.msg-body table {
+  border-collapse: collapse;
+  margin: 0.5em 0 1em;
+  font-size: 0.9em;
+}
+.msg-body th,
+.msg-body td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.msg-body th {
+  background: var(--th-bg);
+  font-weight: 600;
+}
+
+/* ============================================================================
+ * Share-specific UI (password gate, error, loading)
+ * ========================================================================== */
 
 .gate {
+  max-width: 32rem;
+  margin: 4rem auto;
+  padding: var(--space-9);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-9);
-  margin: var(--space-9) 0;
+  text-align: center;
 }
-.gate-title { margin: 0 0 var(--space-4); font-size: 1.2em; }
+.gate-title { margin: 0 0 var(--space-4); font-size: 1.15rem; font-weight: 600; }
 .gate-form {
   display: flex;
   gap: var(--space-4);
-  margin-top: var(--space-6);
+  justify-content: center;
+  margin-top: var(--space-7);
   flex-wrap: wrap;
 }
 .gate-form input {
   flex: 1;
-  min-width: 16ch;
+  min-width: 14ch;
   padding: var(--space-5) var(--space-7);
   background: var(--bg);
   color: var(--text);
@@ -155,27 +459,49 @@ html, body {
   border-radius: var(--radius-md);
   font: inherit;
 }
+.gate-form input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--text) 30%, var(--border));
+}
 .gate-form button {
   padding: var(--space-5) var(--space-8);
   border: none;
   border-radius: var(--radius-md);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
 }
-.gate-form button:hover { opacity: 0.9; }
+.gate-form button:hover { background: var(--btn-bg-hover); }
 
-.loading { padding: var(--space-9) 0; text-align: center; }
-.error-page { padding: var(--space-9) 0; }
-.error-page h1 { margin: 0 0 var(--space-4); color: var(--danger); }
-.error { color: var(--danger); font-size: 0.9em; margin-top: var(--space-4); }
-
-.page-foot {
-  margin-top: var(--space-9);
-  padding-top: var(--space-7);
-  border-top: 1px solid var(--border);
-  font-size: 0.8em;
-  text-align: center;
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
-.page-foot a { color: inherit; }
+
+.error-page {
+  max-width: 32rem;
+  margin: 4rem auto;
+  padding: var(--space-9);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-lg);
+}
+.error-page h1 {
+  margin: 0 0 var(--space-4);
+  color: var(--danger);
+  font-size: 1.15rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: var(--space-5);
+}
+.error[hidden] { display: none !important; }

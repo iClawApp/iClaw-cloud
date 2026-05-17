@@ -6,19 +6,26 @@
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <title>iClaw share</title>
   <link rel="icon" href="/favicon.svg" />
+  <!-- highlight.js themes — browser picks the matching one via prefers-color-scheme. -->
+  <link rel="stylesheet" href="/css/vendor/highlight-github.min.css" media="(prefers-color-scheme: light)" />
+  <link rel="stylesheet" href="/css/vendor/highlight-github-dark.min.css" media="(prefers-color-scheme: dark)" />
   <link rel="stylesheet" href="/viewer.css" />
 </head>
 <body>
-  <main class="page">
+  <div class="page">
     <header class="page-head">
       <a class="brand" href="/">iClaw cloud</a>
-      <span id="meta" class="meta muted"></span>
+      <div class="share-title-bar">
+        <h1 id="share-title">Decrypting share…</h1>
+        <span id="share-meta" class="meta"></span>
+      </div>
     </header>
 
+    <!-- ── Password gate ─────────────────────────────────────────── -->
     <section id="gate" class="gate" hidden>
-      <h1 class="gate-title">This share is password-protected</h1>
+      <h2 class="gate-title">This share is password-protected</h2>
       <p class="muted">Enter the password the sender shared with you out of band.</p>
-      <form id="pw-form" class="gate-form">
+      <form id="pw-form" class="gate-form" autocomplete="off">
         <input
           id="pw-input"
           type="password"
@@ -32,27 +39,30 @@
       <p id="gate-error" class="error" hidden></p>
     </section>
 
+    <!-- ── Loading ───────────────────────────────────────────────── -->
     <section id="loading" class="loading">
-      <p class="muted">Decrypting…</p>
+      <p>Decrypting…</p>
     </section>
 
+    <!-- ── Error ─────────────────────────────────────────────────── -->
     <section id="error" class="error-page" hidden>
       <h1>Can't open this share</h1>
       <p id="error-detail" class="muted"></p>
     </section>
 
-    <article id="content" class="content" hidden>
-      <h1 id="share-title" class="share-title"></h1>
-      <p id="share-sub" class="muted share-sub"></p>
-      <div id="transcript" class="transcript"></div>
-    </article>
+    <!-- ── Decrypted chat (mirrors iClaw's .messages > .messages-thread > .msg) -->
+    <section id="messages" class="messages" hidden>
+      <div id="thread" class="messages-thread" aria-live="polite"></div>
+    </section>
 
-    <footer class="page-foot muted">
+    <footer class="page-foot">
       End-to-end encrypted. The server never saw the key. ·
       <a href="https://github.com/tmlxrd/iClaw-cloud">source</a>
     </footer>
-  </main>
+  </div>
 
+  <script src="/js/vendor/marked.min.js"></script>
+  <script src="/js/vendor/highlight.min.js"></script>
   <script src="/viewer.js" defer></script>
 </body>
 </html>
