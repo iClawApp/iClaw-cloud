@@ -11,6 +11,7 @@
  */
 
 import path from 'node:path';
+import fs from 'node:fs';
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -22,6 +23,15 @@ import { sharesRouter } from './routes/shares';
 import { errorHandler } from './middleware/errorHandler';
 
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
+
+const shareViewerHtml = fs
+  .readFileSync(path.join(PUBLIC_DIR, 'viewer.html'), 'utf8')
+  .replace(/\{\{ICLAW_APP_URL\}\}/g, config.iclawAppUrl);
+
+function sendShareViewer(res: express.Response) {
+  res.type('html');
+  res.send(shareViewerHtml);
+}
 
 function buildApp(): express.Express {
   const app = express();
@@ -77,7 +87,11 @@ function buildApp(): express.Express {
 
   // Static viewer: any path that looks like /s/<id> serves the same SPA.
   app.get(/^\/s\/[A-Za-z0-9_-]{6,32}\/?$/, (_req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'viewer.html'));
+    sendShareViewer(res);
+  });
+
+  app.get('/viewer.html', (_req, res) => {
+    sendShareViewer(res);
   });
 
   // Landing + any other static asset (CSS/JS/icons).

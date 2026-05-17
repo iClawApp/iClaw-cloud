@@ -30,10 +30,16 @@ const RawConfigSchema = z.object({
   MONGO_DB_NAME: z.string().min(1).default('iclaw_cloud'),
 
   /**
-   * Public origin of THIS server (e.g. https://share.iclaw.dev). Used to
+   * Public origin of THIS server (e.g. https://app.iclaw.digital). Used to
    * build the share URL we return to clients.
    */
   BASE_URL: z.string().url().default('http://localhost:4000'),
+
+  /**
+   * Main iClaw web app URL for the "Built by iClaw" link in the share viewer.
+   * Defaults to https://app.iclaw.digital when unset or empty.
+   */
+  ICLAW_APP_URL: z.string().optional(),
 
   /**
    * Comma-separated list of origins allowed to POST encrypted blobs to
@@ -69,13 +75,14 @@ const RawConfigSchema = z.object({
   TTL_MAX_DAYS: z.coerce.number().int().positive().default(30),
 
   /**
-   * If true, log create/read events (id, IP, timestamp, size) — useful for
-   * abuse responses. We NEVER log ciphertext.
+   * If true, log create/read events (id, size, ttl, view counts) — useful for
+   * abuse responses. Off by default to keep local logs readable; enable in
+   * production when you need an audit trail. We NEVER log ciphertext.
    */
   LOG_ACCESS: z
     .string()
     .transform((v) => v === 'true' || v === '1')
-    .default('true'),
+    .default('false'),
 
   /**
    * Trust upstream proxy headers (X-Forwarded-For). Set to "1" when behind
@@ -86,6 +93,18 @@ const RawConfigSchema = z.object({
     .string()
     .transform((v) => v === 'true' || v === '1')
     .default('false'),
+}).superRefine((data, ctx) => {
+  const t = (data.ICLAW_APP_URL ?? '').trim();
+  if (!t) return;
+  try {
+    new URL(t);
+  } catch {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['ICLAW_APP_URL'],
+      message: 'must be a valid absolute URL',
+    });
+  }
 });
 
 /* ---------------------------------------------------------------- parse -- */
@@ -123,6 +142,12 @@ export const config = Object.freeze({
   isTest: raw.NODE_ENV === 'test',
   port: raw.PORT,
   baseUrl: raw.BASE_URL.replace(/\/+$/, ''),
+
+  /** Main iClaw app (viewer "Built by iClaw" link). */
+  iclawAppUrl: (() => {
+    const t = (raw.ICLAW_APP_URL ?? '').trim();
+    return (t || 'https://app.iclaw.digital').replace(/\/+$/, '');
+  })(),
 
   mongo: Object.freeze({
     url: raw.MONGO_URL,

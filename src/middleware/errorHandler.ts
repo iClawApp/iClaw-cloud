@@ -1,9 +1,10 @@
 /**
  * Last-resort Express error handler.
  *
- * Logs the full error server-side but only returns a sanitised payload to
- * the client (no stack traces in production). 4-arg signature is what Express
- * uses to detect "error middleware" — don't remove `_next` even unused.
+ * Returns a sanitised JSON body. Logging is tiered: 404/expected client
+ * outcomes stay quiet; 4xx other than 404 as a single warn line; 5xx as
+ * error + stack in development. 4-arg signature is what Express uses to
+ * detect "error middleware" — don't remove `_next` even unused.
  */
 
 import type { ErrorRequestHandler } from 'express';
@@ -17,11 +18,17 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const message =
     err instanceof Error ? err.message : 'internal error';
 
-  console.error(
-    `[error] ${req.method} ${req.originalUrl} → ${status} :: ${message}`,
-  );
-  if (!config.isProduction && err instanceof Error && err.stack) {
-    console.error(err.stack);
+  const line = `${req.method} ${req.originalUrl} → ${status} :: ${message}`;
+
+  if (status >= 500) {
+    console.error(`[error] ${line}`);
+    if (!config.isProduction && err instanceof Error && err.stack) {
+      console.error(err.stack);
+    }
+  } else if (status === 404) {
+    // Burned share, TTL expiry, bad id — normal for the viewer; not an ops incident.
+  } else if (status >= 400) {
+    console.warn(`[http] ${line}`);
   }
 
   if (res.headersSent) return;

@@ -35,7 +35,7 @@ docker compose up -d       # local Mongo on :27017
 npm run dev                # http://localhost:4000
 ```
 
-For production: set `NODE_ENV=production`, point `MONGO_URL` at a managed cluster (Atlas free tier is enough), set `BASE_URL` to your public hostname, enable `TRUST_PROXY=true` behind a reverse proxy.
+For production: set `NODE_ENV=production`, point `MONGO_URL` at a managed cluster (Atlas free tier is enough), set `BASE_URL=https://app.iclaw.digital`, allow `https://iclaw.digital,https://www.iclaw.digital,https://app.iclaw.digital` in `ALLOWED_ORIGINS`, and enable `TRUST_PROXY=true` behind a reverse proxy. Optional `ICLAW_APP_URL` overrides the **Built by iClaw** link target in the share viewer (defaults to `https://app.iclaw.digital`).
 
 ## Endpoints
 
@@ -77,7 +77,7 @@ const ciphertext = await crypto.subtle.encrypt(
   gzipped_payload_bytes,
 );
 // POST { ciphertext, nonce, hasPassword: false, ttlDays, … }
-// URL: https://share.iclaw.dev/s/<id>#k=<base64url(key)>
+// URL: https://app.iclaw.digital/s/<id>#k=<base64url(key)>
 ```
 
 For a share **with password**:
@@ -95,7 +95,7 @@ const wrappedCt = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: wrapNonce }
 const wrappedKey = concat(wrapNonce, new Uint8Array(wrappedCt));   // 12B nonce || 32B ciphertext + 16B tag
 
 // POST { ciphertext, nonce, salt, wrappedKey, hasPassword: true, ttlDays, … }
-// URL: https://share.iclaw.dev/s/<id>   (no fragment — the recipient enters the password)
+// URL: https://app.iclaw.digital/s/<id>   (no fragment — the recipient enters the password)
 ```
 
 The viewer page (`public/viewer.js`) implements the matching decrypt path.
