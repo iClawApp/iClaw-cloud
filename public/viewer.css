@@ -62,7 +62,8 @@
   --warn-soft-border: color-mix(in srgb, var(--warn) 35%, var(--border));
 
   /* Viewer chrome */
-  --head-backdrop: color-mix(in srgb, var(--header-surface) 82%, transparent);
+  --topbar-bg: #f4f4f4;
+  --head-backdrop: color-mix(in srgb, var(--topbar-bg) 82%, transparent);
   --head-edge: color-mix(in srgb, var(--border) 65%, transparent);
   --head-brand-surface: color-mix(in srgb, var(--text) 5%, var(--header-surface));
   --head-brand-surface-hover: color-mix(in srgb, var(--text) 8%, var(--header-surface));
@@ -102,7 +103,8 @@
     --code-block-fg: #e2e8f0;
     --th-bg: #2a2a2a;
 
-    --head-backdrop: color-mix(in srgb, var(--header-surface) 88%, transparent);
+    --topbar-bg: #141414;
+    --head-backdrop: color-mix(in srgb, var(--topbar-bg) 88%, transparent);
     --head-edge: color-mix(in srgb, var(--border) 55%, transparent);
     --head-brand-surface: color-mix(in srgb, var(--surface) 40%, transparent);
     --head-brand-surface-hover: color-mix(in srgb, var(--surface) 55%, transparent);
@@ -170,41 +172,63 @@ html, body {
   }
 }
 
-.brand {
-  flex-shrink: 0;
-  margin-left: auto;
-  display: inline-flex;
+/* ── topbar ─────────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  contain: layout;
+  height: 52px;
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--head-edge);
+  display: flex;
   align-items: center;
-  padding: var(--space-4) var(--space-6);
-  margin: calc(-1 * var(--space-2)) 0;
-  border-radius: var(--radius-md);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  text-decoration: none;
-  color: var(--muted);
-  background: var(--head-brand-surface);
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  padding: 0 var(--space-9);
+  gap: var(--space-5);
 }
-.brand:hover {
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .topbar {
+    background: var(--head-backdrop);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+  }
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
   color: var(--text);
-  background: var(--head-brand-surface-hover);
-  border-color: color-mix(in srgb, var(--muted) 35%, var(--border));
+  text-decoration: none;
+  transition: opacity 0.15s;
 }
-.brand:active {
-  transform: scale(0.98);
+.topbar__brand:hover { opacity: 0.75; color: var(--text); }
+
+.topbar__logo-img {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  display: block;
 }
 
 .share-title-bar {
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: var(--space-2);
   overflow: hidden;
+  max-width: 50%;
+  pointer-events: none;
 }
 .share-title-bar h1 {
   margin: 0;

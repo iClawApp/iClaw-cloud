@@ -105,7 +105,7 @@ function buildApp(): express.Express {
       etag: true,
       maxAge: '1h',
       setHeaders(res, filePath) {
-        if (/\.(html|js)$/.test(filePath) && !filePath.includes(`${PUBLIC_DIR}/js/vendor/`)) {
+        if (/\.(html|js|css)$/.test(filePath) && !filePath.includes(`${PUBLIC_DIR}/js/vendor/`) && !filePath.includes(`${PUBLIC_DIR}/css/vendor/`)) {
           res.setHeader('Cache-Control', 'no-cache, must-revalidate');
         }
       },
